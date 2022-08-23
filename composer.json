@@ -1,0 +1,41 @@
+{
+	"name": "laxity7/dto",
+	"description": "An easy-to-use generic DTO package for PHP",
+	"license": "MIT",
+	"homepage": "https://github.com/laxity7/dto",
+	"keywords": [
+		"data transfer object",
+		"dto"
+	],
+	"type": "library",
+	"authors": [
+		{
+			"name": "Vlad Varlamov",
+			"email": "work@laxity.ru",
+			"homepage": "http://laxity.ru/"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/laxity7/dto/issues",
+		"source": "https://github.com/laxity7/dto"
+	},
+	"autoload": {
+		"psr-4": {
+			"Laxity7\\": "src"
+		},
+		"exclude-from-classmap": [
+			"/tests/"
+		]
+	},
+	"require": {
+		"php": ">=7.4"
+    },
+	"require-dev": {
+		"phpunit/phpunit": "^9.5"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Laxity7\\Test\\": "tests"
+		}
+	}
+}
