@@ -39,25 +39,37 @@ class BaseDTOTest extends TestCase
         'readonlyArr' => [],
     ];
 
+    private const DATA_FULL = [
+        'children' => [
+            ['id' => 40],
+            ['id' => 50],
+        ],
+        'foo' => [
+            ['id' => 60],
+            ['id' => 70],
+        ],
+        'fooBar' => [
+            ['id' => 80],
+            ['id' => 90],
+        ],
+        'readonly' => [
+            'bar' => 'baz',
+            'foo' => 'gaz',
+        ],
+        'readonlyArr' => [
+            ['bar' => 'baz', 'foo' => 'gaz'],
+            ['bar' => 'baz1', 'foo' => 'gaz1'],
+        ],
+    ];
+
+
     public function testTypeCast(): void
     {
         $subChild = new ChildDto(['id' => 30]);
-        $children = [
-            ['id' => 40],
-            ['id' => 50],
-        ];
-        $foo = [
-            ['id' => 60],
-            ['id' => 70],
-        ];
-        $fooBar = [
-            ['id' => 80],
-            ['id' => 90],
-        ];
-        $readonlyArr = [
-            ['bar' => 'baz', 'foo' => 'gaz'],
-            ['bar' => 'baz1', 'foo' => 'gaz1'],
-        ];
+        $children = self::DATA_FULL['children'];
+        $foo = self::DATA_FULL['foo'];
+        $fooBar = self::DATA_FULL['fooBar'];
+        $readonlyArr = self::DATA_FULL['readonlyArr'];
 
         $dto = new RootDto(array_merge(self::DATA, compact('subChild', 'children', 'foo', 'fooBar', 'readonlyArr')));
 
@@ -163,10 +175,12 @@ class BaseDTOTest extends TestCase
 
     public function testJsonSerialize(): void
     {
-        $data = self::DATA;
+        $data = array_merge(self::DATA, self::DATA_FULL);
         $dto = new RootDto($data);
 
         $data['child']['name'] = null;
+        $data['children'][0]['name'] = null;
+        $data['children'][1]['name'] = null;
         self::assertJsonStringEqualsJsonString(json_encode($data), json_encode($dto));
 
         $newDto = new RootDto(json_decode(json_encode($dto), true));
