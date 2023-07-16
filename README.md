@@ -10,7 +10,7 @@ without checking scalar types, use PHP type casting to check them.
 You can control whether the DTO can be mutable, but by default, it is immutable.
 To be able to change, use public properties or public setters.
 
-This package supports php: 7.4+, 8.*
+This package supports PHP 8.1+
 
 ## Install
 

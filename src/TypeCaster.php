@@ -12,7 +12,7 @@ class TypeCaster
     /**
      * @var array class mapping cache
      */
-    protected static array $classes = [];
+    private static array $classes = [];
 
     /**
      * Automatic casting of nested DTOs
