@@ -2,9 +2,7 @@
 
 namespace Laxity7\Test\dtos\foo;
 
-use Laxity7\BaseDTO;
-
-class FooDto extends BaseDTO
+class FooDto
 {
     public int $id;
 }

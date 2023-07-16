@@ -29,6 +29,9 @@ class RootDto extends BaseDTO
     public array $foo = [];
     /** @var \Laxity7\Test\dtos\foo\FooDto[] */
     public array $fooBar = [];
+    public ?ReadonlyDto $readonly = null;
+    /** @var ReadonlyDto[] */
+    public array $readonlyArr = [];
 
     protected function setLastName(string $lastName): void
     {

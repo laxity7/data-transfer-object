@@ -9,6 +9,7 @@ namespace Laxity7\Test;
 use Laxity7\BaseDTO;
 use Laxity7\Test\dtos\ChildDto;
 use Laxity7\Test\dtos\foo\FooDto;
+use Laxity7\Test\dtos\ReadonlyDto;
 use Laxity7\Test\dtos\ReadWriteDto;
 use Laxity7\Test\dtos\RootDto;
 use Laxity7\UnknownPropertyException;
@@ -17,20 +18,25 @@ use PHPUnit\Framework\TestCase;
 class BaseDTOTest extends TestCase
 {
     private const DATA = [
-        'id'         => 10,
-        'firstName'  => 'John',
-        'lastName'   => 'Doe',
+        'id' => 10,
+        'firstName' => 'John',
+        'lastName' => 'Doe',
         'patronymic' => 'jr.',
-        'data'       => [
+        'data' => [
             'foo' => 'bar'
         ],
-        'child'      => [
+        'child' => [
             'id' => 20
         ],
-        'subChild'   => null,
-        'children'   => [],
-        'foo'        => [],
-        'fooBar'     => [],
+        'subChild' => null,
+        'children' => [],
+        'foo' => [],
+        'fooBar' => [],
+        'readonly' => [
+            'bar' => 'baz',
+            'foo' => 'gaz',
+        ],
+        'readonlyArr' => [],
     ];
 
     public function testTypeCast(): void
@@ -48,8 +54,12 @@ class BaseDTOTest extends TestCase
             ['id' => 80],
             ['id' => 90],
         ];
+        $readonlyArr = [
+            ['bar' => 'baz', 'foo' => 'gaz'],
+            ['bar' => 'baz1', 'foo' => 'gaz1'],
+        ];
 
-        $dto = new RootDto(array_merge(self::DATA, compact('subChild', 'children', 'foo', 'fooBar')));
+        $dto = new RootDto(array_merge(self::DATA, compact('subChild', 'children', 'foo', 'fooBar', 'readonlyArr')));
 
         self::assertEquals(self::DATA['id'], $dto->id);
         self::assertEquals(self::DATA['firstName'], $dto->firstName);
@@ -57,6 +67,9 @@ class BaseDTOTest extends TestCase
         self::assertEquals(self::DATA['data'], $dto->data);
         self::assertInstanceOf(ChildDto::class, $dto->child);
         self::assertEquals(self::DATA['child']['id'], $dto->child->id);
+        self::assertInstanceOf(ReadonlyDto::class, $dto->readonly);
+        self::assertEquals(self::DATA['readonly']['foo'], $dto->readonly->foo);
+        self::assertEquals(self::DATA['readonly']['bar'], $dto->readonly->bar);
         self::assertEquals($subChild, $dto->subChild);
         self::assertIsArray($dto->children);
 
@@ -78,10 +91,17 @@ class BaseDTOTest extends TestCase
             self::assertInstanceOf(FooDto::class, $fooBarDto);
             self::assertEquals($fooBar[$i++]['id'], $fooBarDto->id);
         }
+        $i = 0;
+        foreach ($dto->readonlyArr as $readonlyDto) {
+            self::assertInstanceOf(ReadonlyDto::class, $readonlyDto);
+            self::assertEquals($readonlyArr[$i]['foo'], $readonlyDto->foo);
+            self::assertEquals($readonlyArr[$i]['bar'], $readonlyDto->bar);
+            $i++;
+        }
 
         // checking the order in which variables are set
         $child = new ChildDto([
-            'id'   => 30,
+            'id' => 30,
             'name' => 'Joe'
         ]);
         self::assertEquals('JoeFoo', $child->name);
@@ -90,8 +110,12 @@ class BaseDTOTest extends TestCase
         try {
             $childFoo = null;
             $childFoo = new class(['id' => 30, 'foo' => 1]) extends BaseDTO {
-                protected bool $_ignoreUndefinedFields = false;
                 protected int $id;
+
+                protected function ignoreUndefinedFields(): bool
+                {
+                    return false;
+                }
             };
         } catch (UnknownPropertyException $e) {
             self::assertStringContainsString('Unknown property', $e->getMessage());
@@ -152,9 +176,9 @@ class BaseDTOTest extends TestCase
     public function testUpdate(): void
     {
         $data = [
-            'id'        => 1,
+            'id' => 1,
             'firstname' => 'Joe',
-            'lastname'  => 'Doe',
+            'lastname' => 'Doe',
         ];
         $dto = new ReadWriteDto($data);
 
@@ -174,7 +198,7 @@ class BaseDTOTest extends TestCase
         } catch (UnknownPropertyException $e) {
             self::assertStringContainsString('Unknown property', $e->getMessage());
         } finally {
-            self::assertEquals($data['lastname'] .  ' jr.', $dto->lastname);
+            self::assertEquals($data['lastname'] . ' jr.', $dto->lastname);
         }
     }
 }

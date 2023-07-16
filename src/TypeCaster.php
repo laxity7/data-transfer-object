@@ -36,7 +36,7 @@ class TypeCaster
             $type = $property->getType() ? $property->getType()->getName() : null;
             if (!$type || $type === 'array') {
                 $comments = $property->getDocComment();
-                if (!str_contains(strtolower($comments), 'dto')) {
+                if (empty($comments)) {
                     continue;
                 }
                 preg_match('/@var ((?:[\w?|\\\\,]+(?:\[])?)+)/', $comments, $matches);
@@ -45,17 +45,17 @@ class TypeCaster
                 $isArray = $definition !== $type;
             }
 
-            $type = static::normalizeClass($dto, $type);
+            $type = static::normalizeClass($class, $type);
             if (!$type) {
                 continue;
             }
 
             if (!$isArray) {
-                $attributes[$name] = new $type($value);
+                $attributes[$name] = self::makeInstance($type, $value);
             } else {
                 $attributes[$name] = [];
                 foreach ($value as $key => $item) {
-                    $attributes[$name][$key] = is_array($item) ? new $type($item) : $item;
+                    $attributes[$name][$key] = is_array($item) ? self::makeInstance($type, $item) : $item;
                 }
             }
         }
@@ -64,25 +64,55 @@ class TypeCaster
     }
 
     /**
+     * Instantiate class
+     *
+     * @param string $class Class namespace
+     * @param array $values Array of values
+     * @return object
+     */
+    private static function makeInstance(string $class, array $values): object
+    {
+        $reflection = new ReflectionClass($class);
+        $params = $reflection->getConstructor()?->getParameters();
+
+        if ($params === null && !$reflection->isSubclassOf(BaseDTO::class)) {
+            $object = $reflection->newInstance();
+            foreach ($values as $name => $value) {
+                $object->{$name} = $value;
+            }
+
+            return $object;
+        }
+
+        if (count($params) === 1 && $params[0]->getType()?->getName() === 'array') {
+            return $reflection->newInstance($values);
+        }
+
+        return $reflection->newInstanceArgs($values);
+    }
+
+    /**
      * Normalize class namespace
      *
      * @param BaseDTO $dto
-     * @param string  $typeClass
+     * @param string $typeClass
      * @return string|null Class namespace
      */
-    protected static function normalizeClass(BaseDTO $dto, string $typeClass): ?string
+    protected static function normalizeClass(ReflectionClass $reflectionClass, string $typeClass): ?string
     {
+        if (empty($typeClass)) {
+            return null;
+        }
+
         if (isset(static::$classes[$typeClass])) {
             return static::$classes[$typeClass];
         }
 
         $class = $typeClass;
         if (!str_contains($class, '\\')) {
-            $reflectionClass = new ReflectionClass($dto);
-
             $classInCurrentNamespace = $reflectionClass->getNamespaceName() . '\\' . $typeClass;
             if (class_exists($classInCurrentNamespace)) {
-                $class = static::normalizeClass($dto, $classInCurrentNamespace);
+                $class = static::normalizeClass($reflectionClass, $classInCurrentNamespace);
             } else {
                 $classText = file_get_contents($reflectionClass->getFileName());
                 preg_match(sprintf('/use (([\w_\\\\])+%s)/', $typeClass), $classText, $matches);
@@ -91,8 +121,8 @@ class TypeCaster
             }
         }
 
-        $isDtoClass = $class && class_exists($class) && (new ReflectionClass($class))->isSubclassOf(BaseDTO::class);
-        static::$classes[$typeClass] = $isDtoClass ? $class : null;
+        $isClass = $class && class_exists($class);
+        static::$classes[$typeClass] = $isClass ? $class : null;
 
         return static::$classes[$typeClass];
     }

@@ -35,6 +35,9 @@ class FooDto extends BaseDTO
      public BarDto $bar;
      /* @var BarDto */
      public $baz;
+     public ReadonlyDto $readonly;
+     /** @var ReadonlyDto[] */
+     public array $readonlyArr;
      protected string $time;
 
      // setter can be protected
@@ -50,9 +53,19 @@ class FooDto extends BaseDTO
      }
  }
 
- class BarDto extends BaseDTO
+// optional to inherit BaseDto
+ class BarDto
  {
      public int $id;
+ }
+ class ReadonlyDto extends BaseDTO
+ {
+    public function __construct(
+        readonly public string $foo,
+        readonly public string $bar,
+    ) {
+        parent::__construct();
+    }
  }
 
  $fooDto = new FooDto([
@@ -64,6 +77,14 @@ class FooDto extends BaseDTO
      ],
      'bar'  => ['id' => 3], // transforms into an object BarDto
      'baz'  => new BarDto(['id' => 4]), // just set object
+     'readonly' => [ // transforms into an object ReadonlyDto
+        'bar' => 'baz',
+        'foo' => 'gaz',
+     ],
+     'readonlyArr' => [ // array of objects
+        ['bar' => 'baz', 'foo' => 'gaz'], // transforms into an object ReadonlyDto
+        ['bar' => 'baz1', 'foo' => 'gaz1'], // transforms into an object ReadonlyDto
+     ]
      'time' => '05:59',
  ]);
 

@@ -20,7 +20,6 @@ use ReflectionProperty;
  */
 abstract class BaseDTO implements JsonSerializable
 {
-    protected bool $_ignoreUndefinedFields = true;
     /**
      * @var string[] Field cache
      */
@@ -94,9 +93,11 @@ abstract class BaseDTO implements JsonSerializable
 
     /**
      * @param string $name
-     * @return mixed|null
+     *
+     * @return mixed
+     * @throws UnknownPropertyException
      */
-    public function __get(string $name)
+    public function __get(string $name): mixed
     {
         $getter = 'get' . $name;
         if (method_exists($this, $getter)) {
@@ -112,6 +113,7 @@ abstract class BaseDTO implements JsonSerializable
 
     /**
      * @param string $name
+     *
      * @return bool
      */
     public function __isset(string $name): bool
@@ -121,30 +123,30 @@ abstract class BaseDTO implements JsonSerializable
 
     /**
      * @param string $name
-     * @param mixed  $value
+     * @param mixed $value
+     *
      * @throws UnknownPropertyException
      */
-    public function __set(string $name, $value): void
+    public function __set(string $name, mixed $value): void
     {
         $setter = 'set' . $name;
-        if (method_exists($this, $setter)) {
-            $reflection = new ReflectionMethod($this, $setter);
-            if ($reflection->isPublic()) {
-                $this->$setter($value);
-
-                return;
-            }
+        if (!method_exists($this, $setter)) {
+            throw new UnknownPropertyException(static::class, $name);
         }
 
-        throw new UnknownPropertyException(static::class, $name);
+        $reflection = new ReflectionMethod($this, $setter);
+        if ($reflection->isPublic()) {
+            $this->$setter($value);
+        }
     }
 
     /**
      * @param string $name
-     * @param mixed  $value
+     * @param mixed $value
+     *
      * @throws UnknownPropertyException
      */
-    public function _setValue(string $name, $value): void
+    private function _setValue(string $name, mixed $value): void
     {
         $setter = 'set' . $name;
         if (method_exists($this, $setter)) {
@@ -152,13 +154,14 @@ abstract class BaseDTO implements JsonSerializable
 
             return;
         }
+
         if (property_exists($this, $name)) {
             $this->{$name} = $value;
 
             return;
         }
 
-        if (!$this->_ignoreUndefinedFields) {
+        if (!$this->ignoreUndefinedFields()) {
             throw new UnknownPropertyException(static::class, $name);
         }
     }
@@ -168,17 +171,9 @@ abstract class BaseDTO implements JsonSerializable
     {
         return $this->toArray();
     }
-}
 
-if (!function_exists('str_starts_with')) {
-    function str_starts_with(string $haystack, string $needle): bool
+    protected function ignoreUndefinedFields(): bool
     {
-        return ($haystack[0] === $needle[0]) ? strncmp($haystack, $needle, strlen($needle)) === 0 : false;
-    }
-}
-if (!function_exists('str_contains')) {
-    function str_contains(string $haystack, string $needle): bool
-    {
-        return $needle === '' || strpos($haystack, $needle) !== false;
+        return true;
     }
 }
