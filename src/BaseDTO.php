@@ -9,9 +9,7 @@
 namespace Laxity7;
 
 use JsonSerializable;
-use ReflectionClass;
 use ReflectionMethod;
-use ReflectionProperty;
 
 /**
  * Class BaseDTO
@@ -20,11 +18,6 @@ use ReflectionProperty;
  */
 abstract class BaseDTO implements JsonSerializable
 {
-    /**
-     * @var string[] Field cache
-     */
-    protected array $_fields = [];
-
     /**
      * @param array $attributes
      */
@@ -47,32 +40,7 @@ abstract class BaseDTO implements JsonSerializable
      */
     public function fields(): array
     {
-        if ($this->_fields) {
-            return $this->_fields;
-        }
-
-        $class = new ReflectionClass($this);
-        foreach ($class->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED) as $method) {
-            $name = $method->getName();
-            if ($method->isStatic() || !str_starts_with($name, 'get')) {
-                continue;
-            }
-
-            $this->_fields[] = strtolower($name[3]) . substr($name, 4);
-        }
-
-        foreach ($class->getProperties(ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) as $property) {
-            $name = $property->getName();
-            if ($property->isStatic() || str_starts_with($name, '_')) {
-                continue;
-            }
-
-            $this->_fields[] = $name;
-        }
-
-        $this->_fields = array_unique($this->_fields);
-
-        return $this->_fields;
+        return FieldExtractor::getFields($this);
     }
 
     /**
