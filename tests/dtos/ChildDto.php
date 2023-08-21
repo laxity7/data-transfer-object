@@ -6,9 +6,9 @@
 
 namespace Laxity7\Test\dtos;
 
-use Laxity7\BaseDTO;
+use Laxity7\DataTransferObject;
 
-class ChildDto extends BaseDTO
+class ChildDto extends DataTransferObject
 {
     public int $id;
     public ?string $name = null;

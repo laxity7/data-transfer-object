@@ -11,11 +11,11 @@ namespace Laxity7;
 use JsonSerializable;
 
 /**
- * Class BaseDTO
+ * Class DataTransferObject
  *
  * @see BaseDTOTest
  */
-abstract class BaseDTO implements JsonSerializable
+abstract class DataTransferObject implements JsonSerializable
 {
     /**
      * @param array $attributes
@@ -137,6 +137,10 @@ abstract class BaseDTO implements JsonSerializable
         return $this->toArray();
     }
 
+    /**
+     *
+     * @return bool
+     */
     protected function ignoreUndefinedFields(): bool
     {
         return true;

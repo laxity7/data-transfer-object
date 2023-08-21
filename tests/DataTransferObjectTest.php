@@ -7,7 +7,7 @@
 namespace Laxity7\Test;
 
 use Closure;
-use Laxity7\BaseDTO;
+use Laxity7\DataTransferObject;
 use Laxity7\Test\dtos\ChildDto;
 use Laxity7\Test\dtos\foo\FooDto;
 use Laxity7\Test\dtos\ReadonlyDto;
@@ -17,7 +17,7 @@ use Laxity7\UnknownPropertyException;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
-class BaseDTOTest extends TestCase
+class DataTransferObjectTest extends TestCase
 {
     private const DATA = [
         'id' => 10,
@@ -122,7 +122,7 @@ class BaseDTOTest extends TestCase
 
         // check set undefined field
         self::assertException(function () {
-            $childFoo = new class(['id' => 30, 'foo' => 1]) extends BaseDTO {
+            $childFoo = new class(['id' => 30, 'foo' => 1]) extends DataTransferObject {
                 protected int $id;
 
                 protected function ignoreUndefinedFields(): bool

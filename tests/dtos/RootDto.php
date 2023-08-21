@@ -6,7 +6,7 @@
 
 namespace Laxity7\Test\dtos;
 
-use Laxity7\BaseDTO;
+use Laxity7\DataTransferObject;
 use Laxity7\Test\dtos\foo\FooDto;
 
 /**
@@ -14,7 +14,7 @@ use Laxity7\Test\dtos\foo\FooDto;
  *
  * @property-read  string $patronymic
  */
-class RootDto extends BaseDTO
+class RootDto extends DataTransferObject
 {
     public int $id;
     public string $firstName;

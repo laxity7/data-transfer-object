@@ -142,7 +142,7 @@ final class TypeCaster
     /**
      * Normalize class namespace
      *
-     * @param BaseDTO $dto
+     * @param DataTransferObject $dto
      * @param string $type
      * @return string|null Class namespace
      */

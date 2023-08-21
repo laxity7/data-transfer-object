@@ -5,7 +5,7 @@
     colors="true">
     <testsuites>
         <testsuite name="dto">
-            <file>tests/BaseDTOTest.php</file>
+            <file>tests/DataTransferObjectTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

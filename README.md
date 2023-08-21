@@ -20,76 +20,95 @@ Install via composer
 composer require laxity7/dto
 ```
 
-Or you may add dependency manually in composer.json: `"laxity7/dto": "*"`
-
 ## How to use
 
 ```php
-class FooDto extends BaseDTO
- {
-     public int $id;
-     public string $name;
-     public array $data; // just array
-     /* @var BarDto[] */
-     public array $bars; // array of objects BarDto
-     public BarDto $bar;
-     /* @var BarDto */
-     public $baz;
-     public ReadonlyDto $readonly;
-     /** @var ReadonlyDto[] */
-     public array $readonlyArr;
-     protected string $time;
+<?php
 
-     // setter can be protected
-     // setter has higher priority than field
-     public function setName(string $name): void
-     {
-         $this->name = 'Foo' . $name;
-     }
+use Laxity7\DataTransferObject;
 
-     public function getTime(): string
-     {
-         return $this->time;
-     }
- }
+require_once 'vendor/autoload.php';
+
+/**
+ * @property-read string $time
+ */
+class FooDto extends DataTransferObject
+{
+    public int $id;
+    public string $name;
+    public array $data; // just array
+    /** @var BarDto[] */
+    public array $bars; // array of objects BarDto
+    public BarDto $bar;
+    /** @var BarDto */
+    public $baz;
+    public BarReadonlyDto $readonlyBar;
+    public ReadonlyDto $readonly;
+    /** @var ReadonlyDto[] */
+    public array $readonlyArr;
+    protected string $time;
+
+    // setter can be protected/public
+    // setter has higher priority than field
+    protected function setName(string $name): void
+    {
+        $this->name = 'Foo' . $name;
+    }
+
+    protected function getTime(): string
+    {
+        return (new DateTime($this->time))->format('H:i:s');
+    }
+}
 
 // optional to inherit BaseDto
- class BarDto
- {
-     public int $id;
- }
- class ReadonlyDto extends BaseDTO
- {
+class BarDto
+{
+    public int $id;
+}
+
+// optional to inherit BaseDto
+class BarReadonlyDto
+{
+    public function __construct(
+        readonly public int $id
+    ){}
+}
+
+class ReadonlyDto extends DataTransferObject
+{
     public function __construct(
         readonly public string $foo,
         readonly public string $bar,
     ) {
         parent::__construct();
     }
- }
+}
 
- $fooDto = new FooDto([
-     'id'   => 1,
-     'name' => 'Bar', // FooBar
-     'bars' => [ // array of objects
-         ['id' => 1], // transforms into an object BarDto
-         ['id' => 2], // transforms into an object BarDto
-     ],
-     'bar'  => ['id' => 3], // transforms into an object BarDto
-     'baz'  => new BarDto(['id' => 4]), // just set object
-     'readonly' => [ // transforms into an object ReadonlyDto
+$fooDto = new FooDto([
+    'id' => 1,
+    'name' => 'Bar', // FooBar
+    'data' => [1, 2, 3],
+    'bars' => [ // array of objects
+        ['id' => 1], // transforms into an object BarDto
+        ['id' => 2], // transforms into an object BarDto
+    ],
+    'bar' => ['id' => 3], // transforms into an object BarDto
+    'baz' => new BarReadonlyDto(4), // just set object
+    'readonlyBar' => ['id' => 5], // transforms into an object BarReadonlyDto
+    'readonly' => [ // transforms into an object ReadonlyDto
         'bar' => 'baz',
         'foo' => 'gaz',
-     ],
-     'readonlyArr' => [ // array of objects
+    ],
+    'readonlyArr' => [ // array of objects
         ['bar' => 'baz', 'foo' => 'gaz'], // transforms into an object ReadonlyDto
         ['bar' => 'baz1', 'foo' => 'gaz1'], // transforms into an object ReadonlyDto
-     ]
-     'time' => '05:59',
- ]);
+    ],
+    'time' => '05:59',
+]);
 
- // Get all attributes
- $arr = $fooDto->toArray();
- // Serialize to json (also serializes all included DTOs)
- $json = json_encode($fooDto);
+// Get all attributes
+$arr = $fooDto->toArray();
+// Serialize to json (also serializes all nested DTOs)
+$json = json_encode($fooDto);
 ```

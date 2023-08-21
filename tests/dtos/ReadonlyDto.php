@@ -2,9 +2,9 @@
 
 namespace Laxity7\Test\dtos;
 
-use Laxity7\BaseDTO;
+use Laxity7\DataTransferObject;
 
-class ReadonlyDto extends BaseDTO
+class ReadonlyDto extends DataTransferObject
 {
     public function __construct(
         readonly public string $foo,

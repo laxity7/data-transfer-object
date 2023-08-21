@@ -6,7 +6,7 @@
 
 namespace Laxity7\Test\dtos;
 
-use Laxity7\BaseDTO;
+use Laxity7\DataTransferObject;
 
 /**
  * Class ReadWriteDto
@@ -15,7 +15,7 @@ use Laxity7\BaseDTO;
  * @property string $firstname
  * @property string $lastname
  */
-class ReadWriteDto extends BaseDTO
+class ReadWriteDto extends DataTransferObject
 {
     protected int $id;
     protected string $firstname;
