@@ -61,13 +61,13 @@ class FooDto extends DataTransferObject
     }
 }
 
-// optional to inherit BaseDto
+// optional to inherit DataTransferObject
 class BarDto
 {
     public int $id;
 }
 
-// optional to inherit BaseDto
+// optional to inherit DataTransferObject
 class BarReadonlyDto
 {
     public function __construct(

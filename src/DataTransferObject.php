@@ -13,7 +13,7 @@ use JsonSerializable;
 /**
  * Class DataTransferObject
  *
- * @see BaseDTOTest
+ * @see DataTransferObjectTest
  */
 abstract class DataTransferObject implements JsonSerializable
 {
