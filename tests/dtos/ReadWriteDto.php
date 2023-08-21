@@ -22,15 +22,15 @@ class ReadWriteDto extends BaseDTO
     protected string $lastname;
 
     /**
-     * @param string|null $firstname
+     * @param string $firstname
      */
     public function setFirstname(string $firstname): void
     {
         $this->firstname = $firstname;
     }
 
-    protected function setLastname(string $value)
+    protected function getLastname(): string
     {
-        $this->lastname = $value . ' jr.';
+        return $this->lastname . ' jr.';
     }
 }

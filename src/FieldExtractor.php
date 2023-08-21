@@ -11,7 +11,7 @@ final class FieldExtractor
     /**
      * @var array<string, string[]> Field cache
      */
-    public static $cache = [];
+    private static $cache = [];
 
     public static function getFields(object $object): array
     {

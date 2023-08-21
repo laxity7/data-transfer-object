@@ -6,6 +6,7 @@
 
 namespace Laxity7\Test;
 
+use Closure;
 use Laxity7\BaseDTO;
 use Laxity7\Test\dtos\ChildDto;
 use Laxity7\Test\dtos\foo\FooDto;
@@ -14,6 +15,7 @@ use Laxity7\Test\dtos\ReadWriteDto;
 use Laxity7\Test\dtos\RootDto;
 use Laxity7\UnknownPropertyException;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 class BaseDTOTest extends TestCase
 {
@@ -119,8 +121,7 @@ class BaseDTOTest extends TestCase
         self::assertEquals('JoeFoo', $child->name);
 
         // check set undefined field
-        try {
-            $childFoo = null;
+        self::assertException(function () {
             $childFoo = new class(['id' => 30, 'foo' => 1]) extends BaseDTO {
                 protected int $id;
 
@@ -129,26 +130,17 @@ class BaseDTOTest extends TestCase
                     return false;
                 }
             };
-        } catch (UnknownPropertyException $e) {
-            self::assertStringContainsString('Unknown property', $e->getMessage());
-        } finally {
-            self::assertNull($childFoo);
-        }
+        }, UnknownPropertyException::class);
 
         // check set undefined field
         $childFoo = new ChildDto(['id' => 30, 'foo' => 1]);
         self::assertInstanceOf(ChildDto::class, $childFoo);
 
         // check get undefined field
-        try {
-            $childFoo = null;
+        self::assertException(function () {
             $childFoo = new ChildDto(['id' => 30]);
             $childFoo->foo;
-        } catch (UnknownPropertyException $e) {
-            self::assertStringContainsString('Unknown property', $e->getMessage());
-        } finally {
-            self::assertInstanceOf(ChildDto::class, $childFoo);
-        }
+        }, UnknownPropertyException::class);
     }
 
     public function testFields(): void
@@ -199,20 +191,44 @@ class BaseDTOTest extends TestCase
         $dto->firstname = 'foo';
         self::assertEquals('foo', $dto->firstname);
 
-        try {
-            $dto->id = 0;
-        } catch (UnknownPropertyException $e) {
-            self::assertStringContainsString('Unknown property', $e->getMessage());
-        } finally {
-            self::assertEquals($data['id'], $dto->id);
-        }
+        self::assertException(fn() => $dto->id = 0, UnknownPropertyException::class);
+        self::assertEquals($data['id'], $dto->id);
 
+        self::assertException(fn() => $dto->lastname = 'bar', UnknownPropertyException::class);
+        self::assertEquals($data['lastname'] . ' jr.', $dto->lastname);
+    }
+
+    /**
+     * Asserts that a function will return an exception.
+     *
+     * @param Closure $function
+     * @param string $exceptionClassName
+     * @param string $message
+     */
+    private static function assertException(
+        Closure $function,
+        string $exceptionClassName,
+        string $exceptionMessage = '',
+        string $message = ''
+    ): void {
+        $caught = false;
         try {
-            $dto->lastname = 'bar';
-        } catch (UnknownPropertyException $e) {
-            self::assertStringContainsString('Unknown property', $e->getMessage());
+            $function();
+        } catch (Throwable $e) {
+            $caught = true;
+            if ($e instanceof $exceptionClassName) {
+                self::assertTrue(true, $message);
+                if (!empty($exceptionMessage)) {
+                    self::assertStringContainsString($exceptionMessage, $e->getMessage(), $message);
+                }
+            } else {
+                self::assertInstanceOf($exceptionClassName, get_class($e), $message);
+            }
         } finally {
-            self::assertEquals($data['lastname'] . ' jr.', $dto->lastname);
+            self::assertTrue(
+                $caught,
+                sprintf('Exception %s was expected to be thrown, but it wasn\'t', $exceptionClassName)
+            );
         }
     }
 }

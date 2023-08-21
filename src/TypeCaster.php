@@ -7,33 +7,40 @@ namespace Laxity7;
 
 use ReflectionClass;
 
-class TypeCaster
+final class TypeCaster
 {
     /**
-     * @var array class mapping cache
+     * @var array<string, string|null> class mapping cache
      */
     private static array $classes = [];
-
     /**
-     * Automatic casting of nested DTOs
-     *
-     * @param array $attributes
-     *
-     * @return array
+     * @var array<string, array<string, Field> class fields cache
      */
-    public static function typeCastNested(BaseDTO $dto, array $attributes): array
-    {
-        $class = new ReflectionClass($dto);
-        foreach ($class->getProperties() as $property) {
-            $name = $property->getName();
-            $value = $attributes[$name] ?? null;
+    private static $fields = [];
+    /**
+     * @var array<string, ReflectionClass>
+     */
+    private static $reflections = [];
 
-            if ($property->isStatic() || !array_key_exists($name, $attributes) || !is_array($value)) {
+    private static function loadFields(object $object): array
+    {
+        $className = $object::class;
+        if (isset(self::$fields[$className])) {
+            return self::$fields[$className];
+        }
+
+        $fields = [];
+
+        $reflection = self::getReflectionsClass($object);
+        foreach ($reflection->getProperties() as $property) {
+            $name = $property->getName();
+
+            if ($property->isStatic()) {
                 continue;
             }
 
             $isArray = false;
-            $type = $property->getType() ? $property->getType()->getName() : null;
+            $type = $property->getType()?->getName();
             if (!$type || $type === 'array') {
                 $comments = $property->getDocComment();
                 if (empty($comments)) {
@@ -42,25 +49,56 @@ class TypeCaster
                 preg_match('/@var ((?:[\w?|\\\\,]+(?:\[])?)+)/', $comments, $matches);
                 $definition = trim($matches[1] ?? '');
                 $type = rtrim($definition, '[]');
-                $isArray = $definition !== $type;
+                $isArray = str_contains($definition, '[]');
             }
 
-            $type = static::normalizeClass($class, $type);
+            $type = self::normalizeType($reflection, $type);
             if (!$type) {
                 continue;
             }
 
-            if (!$isArray) {
-                $attributes[$name] = self::makeInstance($type, $value);
-            } else {
-                $attributes[$name] = [];
-                foreach ($value as $key => $item) {
-                    $attributes[$name][$key] = is_array($item) ? self::makeInstance($type, $item) : $item;
-                }
+            $fields[$name] = new Field(
+                name: $name,
+                type: $type,
+                isArray: $isArray
+            );
+        }
+
+        self::$fields[$className] = $fields;
+
+        return $fields;
+    }
+
+    /**
+     * @param object $object Dto object
+     * @param string $name Attribute name
+     * @param mixed $value Attribute value
+     *
+     * @return mixed Attribute value with cast type
+     */
+    public static function typeCastValue(object $object, string $name, mixed $value): mixed
+    {
+        if ($value === null || is_object($value)) {
+            return $value;
+        }
+
+        $fields = self::loadFields($object);
+        $field = $fields[$name] ?? null;
+
+        if ($field === null) {
+            return $value;
+        }
+
+        if (!$field->isArray) {
+            $newValue = self::makeInstance($field->type, $value);
+        } else {
+            $newValue = [];
+            foreach ($value as $key => $item) {
+                $newValue[$key] = is_array($item) ? self::makeInstance($field->type, $item) : $item;
             }
         }
 
-        return $attributes;
+        return $newValue;
     }
 
     /**
@@ -72,10 +110,10 @@ class TypeCaster
      */
     private static function makeInstance(string $class, array $values): object
     {
-        $reflection = new ReflectionClass($class);
+        $reflection = self::getReflectionsClass($class);
         $params = $reflection->getConstructor()?->getParameters();
 
-        if ($params === null && !$reflection->isSubclassOf(BaseDTO::class)) {
+        if ($params === null) {
             $object = $reflection->newInstance();
             foreach ($values as $name => $value) {
                 $object->{$name} = $value;
@@ -91,39 +129,71 @@ class TypeCaster
         return $reflection->newInstanceArgs($values);
     }
 
+    private static function getReflectionsClass(string|object $class): ReflectionClass
+    {
+        $key = is_string($class) ? $class : $class::class;
+        if (!isset(self::$reflections[$key])) {
+            self::$reflections[$key] = new ReflectionClass($class);
+        }
+
+        return self::$reflections[$key];
+    }
+
     /**
      * Normalize class namespace
      *
      * @param BaseDTO $dto
-     * @param string $typeClass
+     * @param string $type
      * @return string|null Class namespace
      */
-    protected static function normalizeClass(ReflectionClass $reflectionClass, string $typeClass): ?string
+    private static function normalizeType(ReflectionClass $reflectionClass, string $type): ?string
     {
-        if (empty($typeClass)) {
+        if (empty($type) || self::isScalar($type)) {
             return null;
         }
 
-        if (isset(static::$classes[$typeClass])) {
-            return static::$classes[$typeClass];
+        if (isset(self::$classes[$type])) {
+            return self::$classes[$type];
         }
 
-        $class = $typeClass;
+        $class = $type;
         if (!str_contains($class, '\\')) {
-            $classInCurrentNamespace = $reflectionClass->getNamespaceName() . '\\' . $typeClass;
-            if (class_exists($classInCurrentNamespace)) {
-                $class = static::normalizeClass($reflectionClass, $classInCurrentNamespace);
-            } else {
+            $class = $reflectionClass->getNamespaceName() . '\\' . $type;
+            if (!class_exists($class)) {
                 $classText = file_get_contents($reflectionClass->getFileName());
-                preg_match(sprintf('/use (([\w_\\\\])+%s)/', $typeClass), $classText, $matches);
+                preg_match(sprintf('/use (([\w_\\\\])+%s)/', $type), $classText, $matches);
 
                 $class = $matches[1] ?? null;
             }
         }
 
         $isClass = $class && class_exists($class);
-        static::$classes[$typeClass] = $isClass ? $class : null;
+        self::$classes[$type] = $isClass ? $class : null;
 
-        return static::$classes[$typeClass];
+        return self::$classes[$type];
+    }
+
+    /**
+     * Determines if a type is a scalar
+     *
+     * @param string $type
+     * @return bool
+     */
+    private static function isScalar(string $type): bool
+    {
+        return in_array($type, ['string', 'int', 'float', 'bool', 'array'], true);
+    }
+}
+
+/**
+ * @internal
+ */
+final class Field
+{
+    public function __construct(
+        public string $name,
+        public string $type,
+        public bool $isArray,
+    ) {
     }
 }

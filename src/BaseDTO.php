@@ -9,7 +9,6 @@
 namespace Laxity7;
 
 use JsonSerializable;
-use ReflectionMethod;
 
 /**
  * Class BaseDTO
@@ -27,7 +26,6 @@ abstract class BaseDTO implements JsonSerializable
             return;
         }
 
-        $attributes = TypeCaster::typeCastNested($this, $attributes);
         foreach ($attributes as $field => $value) {
             $this->_setValue($field, $value);
         }
@@ -53,7 +51,7 @@ abstract class BaseDTO implements JsonSerializable
         $attributes = [];
 
         foreach ($this->fields() as $field) {
-            $attributes[$field] = $this->{$field};
+            $attributes[$field] = $this->__get($field);
         }
 
         return $attributes;
@@ -98,14 +96,11 @@ abstract class BaseDTO implements JsonSerializable
     public function __set(string $name, mixed $value): void
     {
         $setter = 'set' . $name;
-        if (!method_exists($this, $setter)) {
+        if (!is_callable([$this, $setter])) {
             throw new UnknownPropertyException(static::class, $name);
         }
-
-        $reflection = new ReflectionMethod($this, $setter);
-        if ($reflection->isPublic()) {
-            $this->$setter($value);
-        }
+        $value = TypeCaster::typeCastValue($this, $name, $value);
+        $this->$setter($value);
     }
 
     /**
@@ -116,8 +111,10 @@ abstract class BaseDTO implements JsonSerializable
      */
     private function _setValue(string $name, mixed $value): void
     {
+        $value = TypeCaster::typeCastValue($this, $name, $value);
+
         $setter = 'set' . $name;
-        if (method_exists($this, $setter)) {
+        if (is_callable([$this, $setter])) {
             $this->$setter($value);
 
             return;
